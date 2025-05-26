@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Router-ID 转 NET 地址工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            @apply bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-800 dark:to-sky-900;
+        }
+        .card {
+             @apply bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl max-w-lg mx-auto transition-all duration-300 ease-in-out;
+        }
+        .input-field {
+            @apply w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-transparent transition-all duration-150 ease-in-out bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500;
+        }
+        .btn-convert {
+            @apply w-full bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 dark:focus:ring-offset-gray-800 transition-all duration-150 ease-in-out transform hover:scale-105 active:scale-95;
+        }
+        .result-box {
+            @apply mt-6 p-5 bg-emerald-50 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-700 rounded-lg shadow-md;
+        }
+        .result-box h3 {
+            @apply text-lg font-semibold text-emerald-700 dark:text-emerald-300;
+        }
+        .result-box p {
+            @apply text-md text-emerald-600 dark:text-emerald-400 font-mono break-all mt-1;
+        }
+        .error-box {
+            @apply mt-4 p-4 bg-red-50 dark:bg-red-900/50 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 rounded-lg shadow-md;
+        }
+        .btn-copy {
+            @apply mt-3 ml-auto bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium py-2 px-4 rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-150 ease-in-out flex items-center;
+        }
+        /* Dark mode specific label color */
+        @media (prefers-color-scheme: dark) {
+            label {
+                @apply text-gray-300;
+            }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="card w-full">
+        <div class="flex items-center justify-center mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-sky-600 dark:text-sky-400 mr-3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h18m-7.5-3.75h7.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H16.5m1.5 3.75-3.75-3.75M16.5 3l3.75 3.75M7.5 3l3.75 3.75M7.5 3v4.5m0 0A2.25 2.25 0 0 1 5.25 9.75H3M16.5 12v4.5m0 0a2.25 2.25 0 0 0 2.25 2.25H21m-4.5-4.5H12m0 0a2.25 2.25 0 0 1-2.25-2.25V6.75a2.25 2.25 0 0 1 2.25-2.25H12" />
+            </svg>
+            <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100">Router-ID 转 NET 地址</h1>
+        </div>
+
+        <div class="space-y-6">
+            <div>
+                <label for="routerId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Router-ID (例如: 10.0.1.1)</label>
+                <input type="text" id="routerId" class="input-field" placeholder="例如: 10.0.1.1">
+            </div>
+
+            <div>
+                <label for="afi" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">AFI (默认: 49, 2位十六进制)</label>
+                <input type="text" id="afi" class="input-field" placeholder="例如: 49">
+            </div>
+
+            <div>
+                <label for="areaId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">区域ID (十六进制, 例如: 0001 或 00.01)</label>
+                <input type="text" id="areaId" class="input-field" placeholder="例如: 0001">
+            </div>
+
+            <div>
+                <label for="nsel" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">NSEL (十六进制, 默认: 00, 最多2位)</label>
+                <input type="text" id="nsel" class="input-field" placeholder="例如: 00">
+            </div>
+        </div>
+
+        <button id="convertButton" class="btn-convert mt-10">
+            <span class="mr-2">转换</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 inline">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0L13.5 19.5M21 12H3" />
+            </svg>
+        </button>
+
+        <div id="errorMessage" class="error-box mt-6 hidden"></div>
+        <div id="resultNet" class="result-box mt-6 hidden">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3>NET 地址:</h3>
+                    <p id="netOutput"></p>
+                </div>
+                <button id="copyButton" class="btn-copy" title="复制到剪贴板">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                    </svg>
+                    <span id="copyButtonText">复制</span>
+                </button>
+            </div>
+            <div id="copyFeedback" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2" style="visibility: hidden;">已复制!</div>
+        </div>
+
+        <div class="mt-10 text-xs text-gray-500 dark:text-gray-400 text-center leading-relaxed">
+            <p><strong>转换方法说明：</strong></p>
+            <p class="mt-1">此工具通过将 Router-ID 的每个八位字节补足3位十进制数，然后将这12个数字连接起来并分为3组，每组4位，来形成6字节的 System ID。例如：<br>Router-ID <code>10.0.1.1</code> &rarr; <code>010.000.001.001</code> &rarr; <code>010000001001</code> &rarr; System ID <code>0100.0000.1001</code>。</p>
+            <p class="mt-2">最终 NET 地址由 AFI、区域ID、生成的 System ID 和 NSEL 组合而成。</p>
+        </div>
+    </div>
+
+    <script>
+        const routerIdInput = document.getElementById('routerId');
+        const afiInput = document.getElementById('afi');
+        const areaIdInput = document.getElementById('areaId');
+        const nselInput = document.getElementById('nsel');
+        const convertButton = document.getElementById('convertButton');
+        const errorMessageDiv = document.getElementById('errorMessage');
+        const resultNetDiv = document.getElementById('resultNet');
+        const netOutputP = document.getElementById('netOutput');
+        const copyButton = document.getElementById('copyButton');
+        const copyButtonText = document.getElementById('copyButtonText');
+        const copyFeedback = document.getElementById('copyFeedback');
+
+        // Function to validate IPv4 address
+        function isValidIPv4(ip) {
+            if (typeof ip !== 'string') return false;
+            const parts = ip.split('.');
+            if (parts.length !== 4) return false;
+            return parts.every(part => {
+                const num = parseInt(part, 10);
+                return !isNaN(num) && num >= 0 && num <= 255 && String(num) === part;
+            });
+        }
+
+        // Function to validate Hexadecimal string (allows dots for AreaID)
+        function isValidHexWithDots(hex) {
+            if (typeof hex !== 'string') return false;
+            const cleanedHex = hex.replace(/\./g, '');
+            if (!cleanedHex && hex.includes('.')) return false; // Only dots is invalid
+            if (!cleanedHex && !hex.includes('.')) return true; // Empty string is valid for this check, will be caught by "不能为空"
+            return /^[0-9a-fA-F]+$/.test(cleanedHex);
+        }
+        
+        // Function to validate Hexadecimal string characters only (no dots)
+        function isValidHexStrict(hex) {
+            if (typeof hex !== 'string') return false;
+            return /^[0-9a-fA-F]+$/.test(hex);
+        }
+
+        convertButton.addEventListener('click', () => {
+            // Clear previous messages
+            errorMessageDiv.classList.add('hidden');
+            errorMessageDiv.textContent = '';
+            resultNetDiv.classList.add('hidden');
+            netOutputP.textContent = '';
+            copyFeedback.style.visibility = 'hidden';
+            copyButtonText.textContent = '复制';
+
+
+            const routerId = routerIdInput.value.trim();
+            const areaId = areaIdInput.value.trim();
+            
+            let errors = [];
+
+            // Router-ID Validation
+            if (!routerId) errors.push('Router-ID 不能为空。');
+            else if (!isValidIPv4(routerId)) errors.push('无效的 Router-ID 格式。请输入有效的 IPv4 地址 (例如: 10.0.1.1)。');
+            
+            // AFI Validation and defaulting
+            const afiUserInput = afiInput.value.trim();
+            let afi = '49'; // Default AFI
+            if (afiUserInput) { 
+                if (!isValidHexStrict(afiUserInput)) {
+                    errors.push('AFI 必须是有效的十六进制值 (例如: 49)。');
+                } else if (afiUserInput.length !== 2) {
+                    errors.push('AFI 必须为2位十六进制字符。');
+                } else {
+                    afi = afiUserInput; 
+                }
+            } else {
+                afiInput.value = afi;
+            }
+
+            // AreaID Validation
+            if (!areaId) errors.push('区域ID 不能为空。');
+            else if (!isValidHexWithDots(areaId)) errors.push('区域ID 必须是有效的十六进制值 (可包含\'.\', 例如: 0001 或 00.01)。');
+            else if (areaId.replace(/\./g, '').length === 0 && areaId.includes('.')) errors.push('区域ID 不能只包含点号。');
+            
+            // NSEL Validation and defaulting
+            const nselUserInput = nselInput.value.trim();
+            let nsel = '00'; // Default NSEL
+            if (nselUserInput) { 
+                if (!isValidHexStrict(nselUserInput)) {
+                    errors.push('NSEL 必须是有效的十六进制值 (例如: 00)。');
+                } else if (nselUserInput.length > 2) { 
+                    errors.push('NSEL 最多为2位十六进制字符。');
+                } else {
+                    nsel = nselUserInput.padStart(2, '0'); 
+                }
+            } else {
+                nselInput.value = nsel;
+            }
+
+            if (errors.length > 0) {
+                errorMessageDiv.innerHTML = errors.join('<br>');
+                errorMessageDiv.classList.remove('hidden');
+                return;
+            }
+
+            nsel = nsel.toUpperCase();
+            const octets = routerId.split('.');
+            const paddedOctets = octets.map(octet => String(parseInt(octet, 10)).padStart(3, '0'));
+            const twelveDigitString = paddedOctets.join(''); 
+            const sysIdPart1 = twelveDigitString.substring(0, 4);
+            const sysIdPart2 = twelveDigitString.substring(4, 8);
+            const sysIdPart3 = twelveDigitString.substring(8, 12);
+            const systemIDString = `${sysIdPart1}.${sysIdPart2}.${sysIdPart3}`;
+            const finalAfi = afi.toUpperCase();
+            const finalAreaId = areaId.toUpperCase().replace(/\s/g, ''); 
+            const netAddress = `${finalAfi}.${finalAreaId}.${systemIDString}.${nsel}`;
+
+            netOutputP.textContent = netAddress;
+            resultNetDiv.classList.remove('hidden');
+        });
+
+        copyButton.addEventListener('click', () => {
+            const textToCopy = netOutputP.textContent;
+            if (!textToCopy) return;
+
+            // Create a temporary textarea element to hold the text
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textToCopy;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            try {
+                document.execCommand('copy'); // Use execCommand for wider browser compatibility in iframes
+                copyButtonText.textContent = '已复制!';
+                copyFeedback.style.visibility = 'visible';
+                setTimeout(() => {
+                    copyButtonText.textContent = '复制';
+                    copyFeedback.style.visibility = 'hidden';
+                }, 2000);
+            } catch (err) {
+                console.error('无法复制文本: ', err);
+                copyButtonText.textContent = '失败';
+                 copyFeedback.textContent = '复制失败!';
+                 copyFeedback.style.visibility = 'visible';
+                setTimeout(() => {
+                    copyButtonText.textContent = '复制';
+                    copyFeedback.textContent = '已复制!'; // Reset for next attempt
+                    copyFeedback.style.visibility = 'hidden';
+                }, 2000);
+            }
+            document.body.removeChild(tempTextArea);
+        });
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            if (!afiInput.value) {
+                afiInput.value = '49';
+            }
+            if (!nselInput.value) {
+                nselInput.value = '00';
+            }
+        });
+    </script>
+</body>
+</html>
